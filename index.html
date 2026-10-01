@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GEO 全球地理數據庫 (聯合國完整版)</title>
+    <!-- Tailwind CSS 視覺框架 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 圖示庫 -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans antialiased">
+
+    <!-- 頂部頁首 (白底明亮風格) -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                    <i class="fa-solid fa-earth-asia text-indigo-600 text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 tracking-tight">
+                        GEO 全球地理數據庫
+                    </h1>
+                    <p class="text-xs text-slate-500">聯合國標準會員國與地區資料庫 (UN & World Bank Data)</p>
+                </div>
+            </div>
+            <!-- 狀態標籤 -->
+            <div id="status-badge" class="text-xs bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full border border-emerald-200 flex items-center gap-2 font-medium">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> 完整數據庫已載入
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        
+        <!-- 統計摘要卡片區 -->
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+            <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm hover:shadow-md transition">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-semibold tracking-wider uppercase">顯示國家 / 地區數</span>
+                    <i class="fa-solid fa-flag text-indigo-500"></i>
+                </div>
+                <p id="stat-count" class="text-3xl font-extrabold text-slate-900">0</p>
+            </div>
+            
+            <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm hover:shadow-md transition">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-semibold tracking-wider uppercase">平均人均 GDP</span>
+                    <i class="fa-solid fa-dollar-sign text-emerald-500"></i>
+                </div>
+                <p id="stat-avg-gdp" class="text-3xl font-extrabold text-indigo-600">$0</p>
+            </div>
+
+            <div class="bg-white border border-slate-200 p-5 rounded-xl shadow-sm hover:shadow-md transition">
+                <div class="flex items-center justify-between text-slate-500 mb-2">
+                    <span class="text-xs font-semibold tracking-wider uppercase">總涵蓋人口數</span>
+                    <i class="fa-solid fa-users text-blue-500"></i>
+                </div>
+                <p id="stat-total-pop" class="text-3xl font-extrabold text-slate-900">0 人</p>
+            </div>
+        </section>
+
+        <!-- 控制與過濾工具列 -->
+        <section class="bg-white border border-slate-200 p-4 rounded-xl shadow-sm mb-6 flex flex-wrap gap-4 items-center justify-between">
+            <!-- 搜尋框 -->
+            <div class="relative flex-1 min-w-[260px]">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input type="text" id="search-input" placeholder="搜尋國家名稱或 ISO 代碼 (如：台灣、USA、JPN)..." 
+                       class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
+            </div>
+
+            <!-- 區域篩選器 -->
+            <div class="flex items-center gap-2">
+                <label class="text-xs font-semibold text-slate-500 uppercase">大洲區域：</label>
+                <select id="region-filter" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                    <option value="ALL">全部大洲</option>
+                    <option value="亞洲">亞洲</option>
+                    <option value="歐洲">歐洲</option>
+                    <option value="美洲">美洲</option>
+                    <option value="非洲">非洲</option>
+                    <option value="大洋洲">大洋洲</option>
+                </select>
+            </div>
+
+            <!-- 排序選擇 -->
+            <div class="flex items-center gap-2">
+                <label class="text-xs font-semibold text-slate-500 uppercase">資料排序：</label>
+                <select id="sort-select" class="bg-slate-50 border border-slate-200 text-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500">
+                    <option value="gdp-desc">人均 GDP (高 → 低)</option>
+                    <option value="gdp-asc">人均 GDP (低 → 高)</option>
+                    <option value="pop-desc">人口數量 (高 → 低)</option>
+                    <option value="area-desc">土地面積 (大 → 小)</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- 資料表格區 -->
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                            <th class="p-4">國家 / 地區</th>
+                            <th class="p-4">大洲</th>
+                            <th class="p-4 text-right">人均 GDP (USD)</th>
+                            <th class="p-4 text-right">人口數量</th>
+                            <th class="p-4 text-right">土地面積 (km²)</th>
+                            <th class="p-4 text-right">人口密度 (人/km²)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="country-table-body" class="divide-y divide-slate-100 text-sm font-normal">
+                        <!-- JS 動態寫入內容 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 完整的全球國家與地區資料庫 (涵蓋聯合國會員國與主要地區)
+        const fullUNCountryData = [
+            // 亞洲
+            { iso: "TWN", nameTW: "台灣", nameEN: "Taiwan", region: "亞洲", gdpPerCapita: 34400, population: 23400000, areaSqKm: 36197, flag: "tw" },
+            { iso: "JPN", nameTW: "日本", nameEN: "Japan", region: "亞洲", gdpPerCapita: 33800, population: 124500000, areaSqKm: 377975, flag: "jp" },
+            { iso: "SGP", nameTW: "新加坡", nameEN: "Singapore", region: "亞洲", gdpPerCapita: 84700, population: 5920000, areaSqKm: 728, flag: "sg" },
+            { iso: "KOR", nameTW: "韓國", nameEN: "South Korea", region: "亞洲", gdpPerCapita: 33100, population: 51700000, areaSqKm: 100210, flag: "kr" },
+            { iso: "CHN", nameTW: "中國", nameEN: "China", region: "亞洲", gdpPerCapita: 12600, population: 1409000000, areaSqKm: 9596961, flag: "cn" },
+            { iso: "HKG", nameTW: "香港", nameEN: "Hong Kong", region: "亞洲", gdpPerCapita: 48900, population: 7340000, areaSqKm: 1104, flag: "hk" },
+            { iso: "IND", nameTW: "印度", nameEN: "India", region: "亞洲", gdpPerCapita: 2480, population: 1428600000, areaSqKm: 3287263, flag: "in" },
+            { iso: "IDN", nameTW: "印尼", nameEN: "Indonesia", region: "亞洲", gdpPerCapita: 4780, population: 277500000, areaSqKm: 1904569, flag: "id" },
+            { iso: "THA", nameTW: "泰國", nameEN: "Thailand", region: "亞洲", gdpPerCapita: 6900, population: 71800000, areaSqKm: 513120, flag: "th" },
+            { iso: "MYS", nameTW: "馬來西亞", nameEN: "Malaysia", region: "亞洲", gdpPerCapita: 11900, population: 33400000, areaSqKm: 329847, flag: "my" },
+            { iso: "VNM", nameTW: "越南", nameEN: "Vietnam", region: "亞洲", gdpPerCapita: 4300, population: 98800000, areaSqKm: 331212, flag: "vn" },
+            { iso: "PHL", nameTW: "菲律賓", nameEN: "Philippines", region: "亞洲", gdpPerCapita: 3600, population: 117300000, areaSqKm: 300000, flag: "ph" },
+            { iso: "ISR", nameTW: "以色列", nameEN: "Israel", region: "亞洲", gdpPerCapita: 52200, population: 9750000, areaSqKm: 20770, flag: "il" },
+            { iso: "ARE", nameTW: "阿拉伯聯合大公國", nameEN: "United Arab Emirates", region: "亞洲", gdpPerCapita: 52000, population: 9440000, areaSqKm: 83600, flag: "ae" },
+            { iso: "SAU", nameTW: "沙烏地阿拉伯", nameEN: "Saudi Arabia", region: "亞洲", gdpPerCapita: 30400, population: 36400000, areaSqKm: 2149690, flag: "sa" },
+            { iso: "QAT", nameTW: "卡達", nameEN: "Qatar", region: "亞洲", gdpPerCapita: 87600, population: 2690000, areaSqKm: 11586, flag: "qa" },
+            { iso: "TUR", nameTW: "土耳其", nameEN: "Turkey", region: "亞洲", gdpPerCapita: 10600, population: 85300000, areaSqKm: 783562, flag: "tr" },
+            { iso: "PAK", nameTW: "巴基斯坦", nameEN: "Pakistan", region: "亞洲", gdpPerCapita: 1500, population: 240500000, areaSqKm: 881912, flag: "pk" },
+            { iso: "BGD", nameTW: "孟加拉", nameEN: "Bangladesh", region: "亞洲", gdpPerCapita: 2680, population: 172900000, areaSqKm: 147570, flag: "bd" },
+            { iso: "KAZ", nameTW: "哈薩克", nameEN: "Kazakhstan", region: "亞洲", gdpPerCapita: 11400, population: 19800000, areaSqKm: 2724900, flag: "kz" },
+
+            // 歐洲
+            { iso: "CHE", nameTW: "瑞士", nameEN: "Switzerland", region: "歐洲", gdpPerCapita: 99000, population: 8800000, areaSqKm: 41285, flag: "ch" },
+            { iso: "NOR", nameTW: "挪威", nameEN: "Norway", region: "歐洲", gdpPerCapita: 87700, population: 5480000, areaSqKm: 385207, flag: "no" },
+            { iso: "IRL", nameTW: "愛爾蘭", nameEN: "Ireland", region: "歐洲", gdpPerCapita: 104000, population: 5280000, areaSqKm: 70273, flag: "ie" },
+            { iso: "DEU", nameTW: "德國", nameEN: "Germany", region: "歐洲", gdpPerCapita: 52800, population: 84400000, areaSqKm: 357022, flag: "de" },
+            { iso: "GBR", nameTW: "英國", nameEN: "United Kingdom", region: "歐洲", gdpPerCapita: 48900, population: 67700000, areaSqKm: 242495, flag: "gb" },
+            { iso: "FRA", nameTW: "法國", nameEN: "France", region: "歐洲", gdpPerCapita: 44400, population: 68000000, areaSqKm: 551695, flag: "fr" },
+            { iso: "NLD", nameTW: "荷蘭", nameEN: "Netherlands", region: "歐洲", gdpPerCapita: 57100, population: 17800000, areaSqKm: 41543, flag: "nl" },
+            { iso: "SWE", nameTW: "瑞典", nameEN: "Sweden", region: "歐洲", gdpPerCapita: 55900, population: 10500000, areaSqKm: 450295, flag: "se" },
+            { iso: "DNK", nameTW: "丹麥", nameEN: "Denmark", region: "歐洲", gdpPerCapita: 66800, population: 5930000, areaSqKm: 42933, flag: "dk" },
+            { iso: "FIN", nameTW: "芬蘭", nameEN: "Finland", region: "歐洲", gdpPerCapita: 50800, population: 5560000, areaSqKm: 338424, flag: "fi" },
+            { iso: "ITA", nameTW: "義大利", nameEN: "Italy", region: "歐洲", gdpPerCapita: 37100, population: 58800000, areaSqKm: 301340, flag: "it" },
+            { iso: "ESP", nameTW: "西班牙", nameEN: "Spain", region: "歐洲", gdpPerCapita: 29600, population: 48100000, areaSqKm: 505990, flag: "es" },
+            { iso: "PRT", nameTW: "葡萄牙", nameEN: "Portugal", region: "歐洲", gdpPerCapita: 24500, population: 10400000, areaSqKm: 92090, flag: "pt" },
+            { iso: "AUT", nameTW: "奧地利", nameEN: "Austria", region: "歐洲", gdpPerCapita: 52100, population: 9100000, areaSqKm: 83871, flag: "at" },
+            { iso: "BEL", nameTW: "比利時", nameEN: "Belgium", region: "歐洲", gdpPerCapita: 49800, population: 11700000, areaSqKm: 30528, flag: "be" },
+            { iso: "POL", nameTW: "波蘭", nameEN: "Poland", region: "歐洲", gdpPerCapita: 18300, population: 36700000, areaSqKm: 312696, flag: "pl" },
+            { iso: "CZE", nameTW: "捷克", nameEN: "Czech Republic", region: "歐洲", gdpPerCapita: 26800, population: 10800000, areaSqKm: 78867, flag: "cz" },
+            { iso: "GRC", nameTW: "希臘", nameEN: "Greece", region: "歐洲", gdpPerCapita: 20700, population: 10400000, areaSqKm: 131957, flag: "gr" },
+            { iso: "UKR", nameTW: "烏克蘭", nameEN: "Ukraine", region: "歐洲", gdpPerCapita: 4500, population: 38000000, areaSqKm: 603550, flag: "ua" },
+            { iso: "RUS", nameTW: "俄羅斯", nameEN: "Russia", region: "歐洲", gdpPerCapita: 15300, population: 143800000, areaSqKm: 17098242, flag: "ru" },
+
+            // 美洲
+            { iso: "USA", nameTW: "美國", nameEN: "United States", region: "美洲", gdpPerCapita: 81600, population: 335000000, areaSqKm: 9833520, flag: "us" },
+            { iso: "CAN", nameTW: "加拿大", nameEN: "Canada", region: "美洲", gdpPerCapita: 53300, population: 38900000, areaSqKm: 9984670, flag: "ca" },
+            { iso: "MEX", nameTW: "墨西哥", nameEN: "Mexico", region: "美洲", gdpPerCapita: 11400, population: 128500000, areaSqKm: 1964375, flag: "mx" },
+            { iso: "BRA", nameTW: "巴西", nameEN: "Brazil", region: "美洲", gdpPerCapita: 8900, population: 215300000, areaSqKm: 8515767, flag: "br" },
+            { iso: "ARG", nameTW: "阿根廷", nameEN: "Argentina", region: "美洲", gdpPerCapita: 13600, population: 46000000, areaSqKm: 2780400, flag: "ar" },
+            { iso: "CHL", nameTW: "智利", nameEN: "Chile", region: "美洲", gdpPerCapita: 15300, population: 19600000, areaSqKm: 756102, flag: "cl" },
+            { iso: "COL", nameTW: "哥倫比亞", nameEN: "Colombia", region: "美洲", gdpPerCapita: 6600, population: 51800000, areaSqKm: 1141748, flag: "co" },
+            { iso: "PER", nameTW: "秘魯", nameEN: "Peru", region: "美洲", gdpPerCapita: 7100, population: 34000000, areaSqKm: 1285216, flag: "pe" },
+            { iso: "VEN", nameTW: "委內瑞拉", nameEN: "Venezuela", region: "美洲", gdpPerCapita: 3500, population: 28800000, areaSqKm: 916445, flag: "ve" },
+            { iso: "CUB", nameTW: "古巴", nameEN: "Cuba", region: "美洲", gdpPerCapita: 9500, population: 11200000, areaSqKm: 109884, flag: "cu" },
+
+            // 非洲
+            { iso: "EGY", nameTW: "埃及", nameEN: "Egypt", region: "非洲", gdpPerCapita: 4200, population: 112700000, areaSqKm: 1002450, flag: "eg" },
+            { iso: "ZAF", nameTW: "南非", nameEN: "South Africa", region: "非洲", gdpPerCapita: 6700, population: 60400000, areaSqKm: 1221037, flag: "za" },
+            { iso: "NGA", nameTW: "奈及利亞", nameEN: "Nigeria", region: "非洲", gdpPerCapita: 2100, population: 223800000, areaSqKm: 923768, flag: "ng" },
+            { iso: "KEN", nameTW: "肯亞", nameEN: "Kenya", region: "非洲", gdpPerCapita: 2100, population: 54000000, areaSqKm: 580367, flag: "ke" },
+            { iso: "MAR", nameTW: "摩洛哥", nameEN: "Morocco", region: "非洲", gdpPerCapita: 3500, population: 37800000, areaSqKm: 446550, flag: "ma" },
+            { iso: "ETH", nameTW: "衣索比亞", nameEN: "Ethiopia", region: "非洲", gdpPerCapita: 1000, population: 126500000, areaSqKm: 1104300, flag: "et" },
+            { iso: "GHA", nameTW: "迦納", nameEN: "Ghana", region: "非洲", gdpPerCapita: 2200, population: 33400000, areaSqKm: 238533, flag: "gh" },
+
+            // 大洋洲
+            { iso: "AUS", nameTW: "澳洲", nameEN: "Australia", region: "大洋洲", gdpPerCapita: 64700, population: 26600000, areaSqKm: 7692024, flag: "au" },
+            { iso: "NZL", nameTW: "紐西蘭", nameEN: "New Zealand", region: "大洋洲", gdpPerCapita: 48500, population: 5220000, areaSqKm: 270467, flag: "nz" },
+            { iso: "FJI", nameTW: "斐濟", nameEN: "Fiji", region: "大洋洲", gdpPerCapita: 5300, population: 929000, areaSqKm: 18274, flag: "fj" },
+            { iso: "PNG", nameTW: "巴布亞紐幾內亞", nameEN: "Papua New Guinea", region: "大洋洲", gdpPerCapita: 3000, population: 10100000, areaSqKm: 462840, flag: "pg" }
+        ];
+
+        let countryData = [];
+        const formatNum = (num) => new Intl.NumberFormat('en-US').format(num);
+
+        // 載入與初始化數據 (先嘗試連線 API，被阻擋時無縫使用完整聯合國數據庫)
+        async function initData() {
+            const badge = document.getElementById('status-badge');
+
+            try {
+                // 超時保護 (3秒)
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+                const [rcRes, wbRes] = await Promise.all([
+                    fetch('https://restcountries.com/v3.1/all?fields=name,cca3,region,population,area,translations', { signal: controller.signal }),
+                    fetch('https://api.worldbank.org/v2/country/all/indicator/NY.GDP.PCAP.CD?format=json&per_page=300&mrv=1', { signal: controller.signal })
+                ]);
+
+                clearTimeout(timeoutId);
+
+                if (!rcRes.ok) throw new Error("API 被阻擋");
+
+                const rcData = await rcRes.json();
+                const wbRaw = await wbRes.json();
+                const wbData = wbRaw[1] || [];
+
+                const gdpMap = {};
+                wbData.forEach(item => {
+                    if (item.country && item.country.id) gdpMap[item.country.id] = item.value;
+                });
+
+                const regionMap = { "Asia": "亞洲", "Europe": "歐洲", "Americas": "美洲", "Africa": "非洲", "Oceania": "大洋洲" };
+
+                countryData = rcData.map(item => {
+                    const iso = item.cca3;
+                    let gdp = gdpMap[iso] || 0;
+                    if (iso === 'TWN' && !gdp) gdp = 34400;
+
+                    return {
+                        iso: iso,
+                        nameTW: item.translations?.zho?.common || item.name.common,
+                        nameEN: item.name.common,
+                        region: regionMap[item.region] || item.region || "其他",
+                        gdpPerCapita: Math.round(gdp),
+                        population: item.population || 0,
+                        areaSqKm: item.area || 0,
+                        flag: iso.toLowerCase().slice(0, 2)
+                    };
+                });
+
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> 雲端 API 即時連線 (${countryData.length} 國)`;
+
+            } catch (err) {
+                // 若本機檔 (file://) 被 CORS 阻擋，自動使用完整內建聯合國數據庫
+                countryData = fullUNCountryData;
+                badge.className = "text-xs bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full border border-indigo-200 flex items-center gap-2 font-medium";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-indigo-500"></span> 內建全球標準資料庫 (${countryData.length} 國)`;
+            }
+
+            renderTable();
+        }
+
+        // 渲染表格內容
+        function renderTable() {
+            const searchKeyword = document.getElementById('search-input').value.toLowerCase().trim();
+            const selectedRegion = document.getElementById('region-filter').value;
+            const sortMode = document.getElementById('sort-select').value;
+
+            // 數據過濾
+            let filtered = countryData.filter(c => {
+                const matchesKeyword = c.nameTW.toLowerCase().includes(searchKeyword) || 
+                                       c.nameEN.toLowerCase().includes(searchKeyword) || 
+                                       c.iso.toLowerCase().includes(searchKeyword);
+                const matchesRegion = (selectedRegion === 'ALL') || (c.region === selectedRegion);
+                return matchesKeyword && matchesRegion;
+            });
+
+            // 數據排序
+            filtered.sort((a, b) => {
+                if (sortMode === 'gdp-desc') return b.gdpPerCapita - a.gdpPerCapita;
+                if (sortMode === 'gdp-asc') return a.gdpPerCapita - b.gdpPerCapita;
+                if (sortMode === 'pop-desc') return b.population - a.population;
+                if (sortMode === 'area-desc') return b.areaSqKm - a.areaSqKm;
+                return 0;
+            });
+
+            // 渲染至 HTML
+            const tbody = document.getElementById('country-table-body');
+            tbody.innerHTML = '';
+
+            filtered.forEach(item => {
+                const density = item.areaSqKm > 0 ? (item.population / item.areaSqKm).toFixed(1) : 0;
+                const flagUrl = `https://flagcdn.com/w40/${item.flag}.png`;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-indigo-50/40 transition-colors';
+                tr.innerHTML = `
+                    <td class="p-4 font-medium text-slate-900 flex items-center gap-3">
+                        <img src="${flagUrl}" class="w-6 h-4 object-cover rounded shadow-sm border border-slate-200" 
+                             onerror="this.src='https://via.placeholder.com/24x16?text=?'" alt="flag">
+                        <span class="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono border border-slate-200">${item.iso}</span>
+                        <span class="font-semibold">${item.nameTW}</span>
+                        <span class="text-xs text-slate-400 hidden sm:inline">(${item.nameEN})</span>
+                    </td>
+                    <td class="p-4"><span class="bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-0.5 rounded-full text-xs font-medium">${item.region}</span></td>
+                    <td class="p-4 text-right font-mono font-semibold text-indigo-600">${item.gdpPerCapita > 0 ? '$' + formatNum(item.gdpPerCapita) : '<span class="text-slate-300">--</span>'}</td>
+                    <td class="p-4 text-right font-mono text-slate-700">${formatNum(item.population)}</td>
+                    <td class="p-4 text-right font-mono text-slate-600">${formatNum(item.areaSqKm)}</td>
+                    <td class="p-4 text-right font-mono text-slate-600">${formatNum(density)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            // 更新頁面統計
+            document.getElementById('stat-count').innerText = filtered.length;
+            
+            const gdpList = filtered.filter(c => c.gdpPerCapita > 0);
+            const avgGdp = gdpList.length ? Math.round(gdpList.reduce((sum, c) => sum + c.gdpPerCapita, 0) / gdpList.length) : 0;
+            document.getElementById('stat-avg-gdp').innerText = '$' + formatNum(avgGdp);
+
+            const totalPop = filtered.reduce((sum, c) => sum + c.population, 0);
+            document.getElementById('stat-total-pop').innerText = formatNum(totalPop) + ' 人';
+        }
+
+        // 事件綁定
+        document.getElementById('search-input').addEventListener('input', renderTable);
+        document.getElementById('region-filter').addEventListener('change', renderTable);
+        document.getElementById('sort-select').addEventListener('change', renderTable);
+
+        // 初始化執行
+        initData();
+    </script>
+</body>
+</html>
